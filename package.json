@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin-modif",
+	"name": "plugin-modif",
 	"version": "1.0.0",
-	"description": "modified sample plugin",
+	"description": "modified plugin",
 	"main": "main.js",
 	"scripts": {
 		"start": "npm i && cross-env REAL=0 node scripts/start.mjs",
@@ -28,6 +28,7 @@
 		"dotenv": "^16.4.5",
 		"esbuild": "^0.23.1",
 		"fs-extra": "^11.2.0",
+		"monkey-around": "latest",
 		"obsidian": "latest",
 		"obsidian-typings": "latest",
 		"semver": "^7.6.0",
