@@ -18,15 +18,15 @@ export default class FolderContextMenu extends Plugin {
     const fileExplorerPluginInstance = this.app.internalPlugins.getEnabledPluginById(InternalPluginName.FileExplorer);
     console.log("fileExplorerPluginInstance", fileExplorerPluginInstance)
 
-    // if (!fileExplorerPluginInstance) {
-    //   return;
-    // }
+    if (!fileExplorerPluginInstance) {
+      return;
+    }
 
-    // this.fileExplorerView = this.app.workspace.getLeavesOfType('file-explorer')[0].view;
+    this.fileExplorerView = this.app.workspace.getLeavesOfType('file-explorer')[0].view;
 
-    // this.register(openFileContextMenuWrapper(this));
+    this.register(openFileContextMenuWrapper(this));
 
-    // this.addVaultSwitcherContextMenu();
+    this.addVaultSwitcherContextMenu();
 
   }
 
