@@ -1,64 +1,52 @@
+import { around } from 'monkey-around';
 import {
   Plugin,
   TFolder
-} from "obsidian";
-import { around } from "monkey-around";
-import {  InternalPluginName, type FileExplorerView, type InternalPlugin } from "obsidian-typings";
+} from 'obsidian';
+import type { FileExplorerView } from "obsidian-typings";
+import { InternalPluginName } from 'obsidian-typings/implementations';
 
+type OpenFileCM = FileExplorerView['openFileContextMenu']
+type OpenFileCMArgs = Parameters<OpenFileCM>
 
-export default class FolderContextMenu extends Plugin {
-  fileExplorerView: FileExplorerView;
-  fileExplorerPlugin: InternalPlugin;
+export default class RootFolderContextMenu extends Plugin {
+  fileExplorerView!: FileExplorerView;
 
-  onload(): void {
+  public override onload(): void {
     this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
   }
 
-  async onLayoutReady(): Promise<void> {
-    const fileExplorerPluginInstance = this.app.internalPlugins.getEnabledPluginById(InternalPluginName.FileExplorer);
-    console.log("fileExplorerPluginInstance", fileExplorerPluginInstance)
+  onLayoutReady(): void {
+    this.fileExplorerView = this.app.workspace.getLeavesOfType(InternalPluginName.FileExplorer)[0].view;
 
-    if (!fileExplorerPluginInstance) {
-      return;
-    }
+    this.register(this.openFileContextMenuWrapper(this));
 
-    this.fileExplorerView = this.app.workspace.getLeavesOfType('file-explorer')[0].view;
-
-    this.register(openFileContextMenuWrapper(this));
-
-    this.addVaultSwitcherContextMenu();
-
-  }
-
-  private addVaultSwitcherContextMenu() {
-    const vaultSwitcherEl = document.querySelector('.workspace-drawer-vault-switcher') as HTMLElement;
+    const vaultSwitcherEl = document.querySelector<HTMLElement>('.workspace-drawer-vault-switcher');
     if (vaultSwitcherEl) {
       this.fileExplorerView.files.set(vaultSwitcherEl, this.app.vault.getRoot());
-      this.registerDomEvent(vaultSwitcherEl, 'contextmenu', (event: MouseEvent) => {
-        event.preventDefault();
-        this.fileExplorerView.openFileContextMenu(event, vaultSwitcherEl.childNodes[0] as HTMLElement);
+      this.registerDomEvent(vaultSwitcherEl, 'contextmenu', async (ev: MouseEvent): Promise<void> => {
+        this.fileExplorerView.openFileContextMenu(ev, vaultSwitcherEl.childNodes[0] as HTMLElement);
+        document.body.click();
       });
     }
   }
-}
 
-
-function openFileContextMenuWrapper(plugin: FolderContextMenu) {
-  const viewPrototype = Object.getPrototypeOf(plugin.fileExplorerView);
-  return around(viewPrototype, {
-    openFileContextMenu(old:any) {
-      return function (...args: [event: Event, fileItemEl: HTMLElement]): void {
-        const file = this.files.get(args[1].parentElement);
-        if (!file) return
-        if (!file.isRoot() || !(file instanceof TFolder)) {
-          old.apply(args);
-          return;
+  private openFileContextMenuWrapper(plugin: RootFolderContextMenu) {
+    return around(Object.getPrototypeOf(plugin.fileExplorerView), {
+      openFileContextMenu(old: OpenFileCM): OpenFileCM {
+        return function (...args: OpenFileCMArgs): void {
+          if (!plugin.fileExplorerView) return old.apply(this, args)
+          const file = this.files?.get(args[1]?.parentElement);
+          if (!file || !(file instanceof TFolder)) {
+            return old.apply(this, args);
+          }
+          // Temporarily override isRoot
+          const originalIsRoot = file.isRoot;
+          file.isRoot = () => false;
+          old.apply(this, args);
+          file.isRoot = originalIsRoot;
         }
-        const originalIsRoot = file.isRoot;
-        file.isRoot = () => false;
-        old.apply(args);
-        file.isRoot = originalIsRoot;
       }
-    }
-  })
+    })
+  }
 }
